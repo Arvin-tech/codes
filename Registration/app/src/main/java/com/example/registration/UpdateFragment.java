@@ -1,5 +1,6 @@
 package com.example.registration;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -72,15 +73,19 @@ public class UpdateFragment extends Fragment {
             public void onClick(View v) {
                 updatedEmail = emailTxt.getText().toString();
                 updatedPassword = passWordTxt.getText().toString();
-                AuthCredential credential = EmailAuthProvider.getCredential(updatedEmail, updatedPassword);
+                // AuthCredential credential = EmailAuthProvider.getCredential(updatedEmail, updatedPassword);
                 //validation
-                if(!updatedEmail.isEmpty() && !updatedPassword.isEmpty()){
-                    reAuth(credential); //re-authenticate method has the update method
+                if(!updatedEmail.isEmpty()){
+                    updateEmail(updatedEmail); //invoke method
+                }
+                if(!updatedPassword.isEmpty()){
+                    updatePassword(updatedPassword); //invoke method
                 }
                 else{
-                    showToast("Please make sure there are no empty fields!");
+                    showToast("Please make sure there are no empty fields");
                 }
-
+                showToast("Successfully Updated! Please sign-in again.");
+                logOut(); //re-authenticate the user
             }
         });
         return view;
@@ -94,7 +99,8 @@ public class UpdateFragment extends Fragment {
                     public void onComplete(@NonNull Task<Void> task) {
                         if (task.isSuccessful()) {
                             Log.d(TAG, "User re-authenticated.");
-                            update(updatedEmail,updatedPassword);
+                            updateEmail(updatedEmail);
+                            updatePassword(updatedPassword);
                         } else {
                             Log.d(TAG, "User re-authentication failed.");
                         }
@@ -102,9 +108,18 @@ public class UpdateFragment extends Fragment {
                 });
     }
 
-    //update method
-    private void update(String email, String password){
-        //update the email
+    private void logOut(){
+        FirebaseAuth.getInstance().signOut(); //logout user
+        loginActivity(); //re authenticate
+    }
+
+    private void loginActivity() {
+        Intent intent = new Intent(getActivity(),Login.class);
+        startActivity(intent);
+    }
+
+    //update the email
+    private void updateEmail(String email){
         user.updateEmail(email)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
@@ -113,11 +128,15 @@ public class UpdateFragment extends Fragment {
                             Log.d(TAG,"Email Successfully Updated");
                         }
                         else{
-                            showToast("Failed to update!");
+                            showToast("Failed to update email!");
                         }
                     }
                 });
-        //update the password
+
+
+    }
+    //update the password
+    private void updatePassword(String password){
         user.updatePassword(password)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
@@ -126,16 +145,41 @@ public class UpdateFragment extends Fragment {
                             Log.d(TAG, "Password updated.");
                         }
                         else{
-                            showToast("Failed to update!");
+                            showToast("Failed to update password!");
                         }
                     }
                 });
-        //records are updated
-        showToast("Record Successfully Updated!");
     }
 
     private void showToast(String message) {
         Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+    }
+
+    public void search(){
+        //current user's FirebaseUser object
+        user = FirebaseAuth.getInstance().getCurrentUser();
+        // Define a reference to the user's data in Firestore
+        DocumentReference docRef = FirebaseFirestore.getInstance().collection("users")
+                .document(user.getUid());
+        // Retrieve the user's data from Firestore
+        docRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if (documentSnapshot.exists()) {
+                    String email = documentSnapshot.getString("email");
+                    String password = documentSnapshot.getString("password");
+                    emailTxt.setText(email);
+                    passWordTxt.setText(password);
+                } else {
+
+                }
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                // Handle error or take other actions
+            }
+        });
     }
 
     /**
@@ -180,7 +224,5 @@ public class UpdateFragment extends Fragment {
                     }
                 });
     }**/
-
-
 
 }

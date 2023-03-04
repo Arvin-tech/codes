@@ -1,5 +1,6 @@
 package com.example.registration;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -53,14 +54,26 @@ public class DeleteFragment extends Fragment {
                 deletedAccount = emailTxt.getText().toString();
                 //validation
                 if(!deletedAccount.isEmpty()){
-                   // reAuth(); //method call
+                    delete();
                 }
                 else{
                     showToast("Please make sure there are no empty fields!");
                 }
+                showToast("Successfully Deleted!");
+                logOut(); // back to login after deleting
             }
         });
         return view;
+    }
+
+    private void logOut(){
+        FirebaseAuth.getInstance().signOut(); //logout user
+        loginActivity(); //re authenticate
+    }
+
+    private void loginActivity() {
+        Intent intent = new Intent(getActivity(),Login.class);
+        startActivity(intent);
     }
 
     private void reAuth(AuthCredential credential){
