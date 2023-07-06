@@ -1,0 +1,71 @@
+public class Main
+{
+    public static void main(String[]args){
+        BankAccSystem bank = new BankAccSystem();
+        bank.mainmenu();
+    }
+}
+
+
+
+import java.util.*;
+import java.time.LocalDate; //for transaction date
+public class BankAccSystem
+{
+    static Scanner input = new Scanner(System.in);
+
+    public void mainmenu(){
+        int choice; // do while
+
+        do{
+            System.out.println("\f\tMenu");
+            System.out.println("[1] New Account\n[2] Deposit");
+            System.out.println("[3] Withdrawal\n[4] Inquiry by Account No.");
+            System.out.println("[5] Inquiry by LastName\n[6] Update Record");
+            System.out.println("[7] Show All Accounts\n[8] Exit\n Your choice: ");
+            choice = input.nextInt();
+
+            switch(choice){
+
+                case 1: newAccount();
+                break;
+                case 2: deposit();
+                break;
+                case 3: withdrawal();
+                break;
+                case 4: inquirybyAccountNo();
+                break;
+                case 5: inquirybyLastName();
+                break;
+                case 6: updateRecord();
+                break;
+                case 7: showAllAccounts();
+                break;
+                case 8: System.out.print("Closing Program..");
+                break;
+
+            }
+        }while(choice != 8);
+    }
+
+    public void newAccount(){
+    }
+
+    public void deposit(){
+    }
+
+    public void withdrawal(){
+    }
+
+    public void inquirybyAccountNo(){
+    }
+
+    public void inquirybyLastName(){
+    }
+
+    public void updateRecord(){
+    }
+
+    public void showAllAccounts(){
+    }
+}
