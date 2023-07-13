@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">File Upload</string>
+    <string name="choose">Choose file</string>
+    <string name="upload">Upload</string>
+    <string name="login">Login</string>
+    <string name="signup">Signup</string>
+    <string name="name">Name</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+</resources>
