@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:background="@color/white"
+    android:padding="15dp"
+    tools:context=".Signup">
+
+    <ImageView
+        android:layout_width="350dp"
+        android:layout_height="190dp"
+        android:src="@drawable/signup"
+        android:layout_marginTop="50dp"
+        android:layout_marginBottom="15dp"
+        android:contentDescription="Logo" />
+
+    <!--logo or text here-->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="1dp"
+        android:layout_marginEnd="15dp"
+        android:text="Join us today"
+        android:fontFamily="@font/poppins_bold"
+        android:gravity="left"
+        android:textColor="@color/black"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="15dp"
+        android:text="Experience the Difference! Sign Up Now to Explore a World of Possibilities. Get Started. Don't Miss Out!"
+        android:fontFamily="@font/poppins_regular"
+        android:gravity="left"
+        android:textColor="@color/black"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+
+
+    <!--Full Name Input-->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/fullNameLayout"
+        android:layout_width="380dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="20dp"
+        app:counterEnabled="true"
+        app:counterMaxLength="20"
+        app:endIconMode="clear_text"
+        app:errorEnabled="true"
+        app:hintEnabled="false"
+        app:startIconDrawable="@drawable/baseline_person_24">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/fullNameEditTxt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/edit_bg"
+            android:hint="@string/name"
+            android:textColor="@color/black"
+            android:textColorHint="@color/dark_gray" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!--Phone Input-->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/phoneNumberLayout"
+        android:layout_width="380dp"
+        android:layout_height="wrap_content"
+        app:counterEnabled="true"
+        app:counterMaxLength="11"
+        app:errorEnabled="true"
+        app:hintEnabled="false"
+        app:startIconDrawable="@drawable/baseline_phone_android_24"
+        app:endIconMode="clear_text">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/phoneEditTxt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/edit_bg"
+            android:hint="@string/phone"
+            android:textColor="@color/black"
+            android:textColorHint="@color/dark_gray"
+            android:inputType="phone" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!--Email Input-->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/emailLayout"
+        android:layout_width="380dp"
+        android:layout_height="wrap_content"
+        app:counterEnabled="true"
+        app:counterMaxLength="30"
+        app:errorEnabled="true"
+        app:hintEnabled="false"
+        app:startIconDrawable="@drawable/baseline_alternate_email_24"
+        app:endIconMode="clear_text">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/emailEditTxt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/edit_bg"
+            android:hint="@string/email"
+            android:inputType="text"
+            android:textColor="@color/black"
+            android:textColorHint="@color/dark_gray" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+
+    <!--Password Input-->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/passwordLayout"
+        android:layout_width="380dp"
+        android:layout_height="wrap_content"
+        app:counterEnabled="true"
+        app:counterMaxLength="15"
+        app:hintEnabled="false"
+        app:endIconMode="password_toggle"
+        app:errorEnabled="true"
+        app:startIconDrawable="@drawable/baseline_lock_24">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/passwordEditTxt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/edit_bg"
+            android:hint="@string/password"
+            android:textColor="@color/black"
+            android:textColorHint="@color/dark_gray"
+            android:inputType="textPassword" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!--Confirm Password Input-->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/confirmPasswordLayout"
+        android:layout_width="380dp"
+        android:layout_height="wrap_content"
+        app:counterEnabled="true"
+        app:counterMaxLength="15"
+        app:hintEnabled="false"
+        app:endIconMode="password_toggle"
+        app:errorEnabled="true"
+        app:startIconDrawable="@drawable/baseline_lock_24">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/passwordConfirmEditTxt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/edit_bg"
+            android:hint="@string/confirm"
+            android:textColor="@color/black"
+            android:textColorHint="@color/dark_gray"
+            android:inputType="textPassword" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!--Signup-->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/buttonSignup"
+        android:layout_width="290dp"
+        android:layout_height="50dp"
+        android:layout_margin="16dp"
+        android:background="@drawable/button_bg"
+        android:fontFamily="@font/poppins_regular"
+        android:padding="16dp"
+        android:text="Submit"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/textViewLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Already have an account?"
+        android:textColor="@color/white"
+        android:fontFamily="@font/poppins_italic"
+        android:gravity="center"
+        android:layout_marginTop="15dp"
+        android:layout_marginBottom="20dp" />
+
+</LinearLayout>

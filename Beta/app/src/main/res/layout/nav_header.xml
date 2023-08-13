@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    android:id="@+id/navigationBar"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="176dp"
+    android:gravity="bottom"
+    android:padding="16dp"
+    android:background="@drawable/headerbkg"
+    android:theme="@style/ThemeOverlay.AppCompat.Dark">
+
+    <ImageView
+        android:layout_width="50dp"
+        android:layout_height="39dp"
+        android:src="@drawable/profilepic"/>
+
+    <TextView
+        android:id="@+id/userNameTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/poppins_bold"
+        android:text="USERS NAME HERE"
+        android:textSize="18dp"
+        android:textColor="@color/white"
+        android:textStyle="bold"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="35dp">
+
+        <TextView
+            android:id="@+id/userEmailTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/poppins_regular"
+            android:text="USER EMAIL HERE"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:layout_marginBottom="1dp"/>
+
+        <TextView
+            android:id="@+id/userAccountIdTextView"
+            android:layout_gravity="end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/poppins_regular"
+            android:text="Account Id"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp"/>
+
+    </FrameLayout>
+
+</LinearLayout>
