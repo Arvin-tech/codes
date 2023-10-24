@@ -16,6 +16,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,18 +44,19 @@ public class ResetPassword extends AppCompatActivity {
     protected TextView title, prompt; //reset pass and strong pass texts
     protected TextInputLayout newPassLayout, verifyPassLayout; //text input layouts
     protected EditText newPassTxt, verifyPassTxt; //edit texts
-    protected AppCompatButton resetPassButton, cancelButton;
+    protected AppCompatButton resetPassButton;
     protected FirebaseFirestore db;
     protected String inputtedNewPass, inputtedVerifyPass;
     protected String userEmail;
     protected int redColor = Color.parseColor("#FF0000"); // Set the error text color to red
+    protected ImageView back;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reset_password);
 
         findViewById(); //reference to ui elements
-        setStatusBarColor(getResources().getColor(R.color.dark_orange)); //set status bar color
+        setStatusBarColor(getResources().getColor(R.color.light_gray)); //set status bar color
         db = FirebaseFirestore.getInstance(); //initialize fire store
         inputTextWatchers(); //new pass and verify pass text watchers
         inputListeners(); //new pass and verify pass input listeners
@@ -74,7 +76,7 @@ public class ResetPassword extends AppCompatActivity {
             }
         });
 
-        cancelButton.setOnClickListener(new View.OnClickListener() {
+        back.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
@@ -98,7 +100,7 @@ public class ResetPassword extends AppCompatActivity {
         newPassTxt = findViewById(R.id.newPasswordEditTxt);
         verifyPassTxt = findViewById(R.id.verifyPasswordEditTxt);
         resetPassButton = findViewById(R.id.buttonResetPassword);
-        cancelButton = findViewById(R.id.buttonCancel);
+        back = findViewById(R.id.backImage);
     }
 
     protected void inputTextWatchers(){

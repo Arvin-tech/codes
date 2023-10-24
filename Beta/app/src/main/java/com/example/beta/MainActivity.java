@@ -4,7 +4,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Build;
@@ -13,14 +15,26 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.util.Patterns;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.facebook.AccessToken;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.login.LoginManager;
+import com.facebook.login.LoginResult;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -37,7 +51,11 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,59 +63,55 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "SignInActivity";
     protected FirebaseFirestore db; //cloud fire store
-    private static final int RC_SIGN_IN = 40; //constant
+    private static final int RC_SIGN_IN = 1000; //constant
     protected AppCompatButton loginButton, createButton;
     protected TextInputLayout emailInputLayout, passwordInputLayout;
     protected EditText emailTxt, passwordTxt; //email and password input
     protected TextView forgotPass; //don't have an account yet? && reset password
-    protected GoogleSignInClient mGoogleSignInClient; //google sign-in
     protected String inputtedEmail, inputtedPassword;
     protected Calendar calendar = Calendar.getInstance();
     protected SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     protected String currentDate = simpleDateFormat.format(calendar.getTime()); //or currentDate = DateFormat.getDateInstance(DateFormat.FULL).format(calendar.getTime());
     protected String userEmail; //used for updating last login activity
     protected int redColor = Color.parseColor("#FF0000"); // Set the error text color to red
+    protected SharedPreferences sharedPreferences; //storage mechanism used for auth/login purposes
+    protected SharedPreferences.Editor editor;
+    protected TextView signupTxt;
+    TextView text;
+    View errorLayout;
+    LayoutInflater inflater;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        // Set the status bar color to orange
-        setStatusBarColor(getResources().getColor(R.color.dark_orange));
 
+        inflater = getLayoutInflater();
+        errorLayout = inflater.inflate(R.layout.error_message, null); //error_message xml
+        text = errorLayout.findViewById(R.id.errorMessage);
+
+
+        setStatusBarColor(getResources().getColor(R.color.light_gray)); // Set the status bar color to orange
         db = FirebaseFirestore.getInstance(); //initialize firebase fire store
+        //sharedPreferences = getSharedPreferences("auth_data", Context.MODE_PRIVATE);
+        //editor = sharedPreferences.edit();
+
         findViewById(); //reference to ui elements
         textWatchers(); //text watchers
         emailInputListener();
         passwordInputListener();
 
-        // Configure sign-in to request the user's ID, email address, and basic
-        // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
-        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.default_web_client_id))
-                .requestEmail()
-                .build();
-        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-
-        //click google sign-in button
         /*
-        signInButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) { signIn(); }
-        });
-        */
+        // Check if the user is already authenticated
+        if (isUserAuthenticated()) {
+            redirectHomeActivity();
+            return;
+        }
 
-        //click login button
-        loginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                inputtedEmail = emailTxt.getText().toString().trim();
-                inputtedPassword = passwordTxt.getText().toString().trim();
-                if(validEmail(inputtedEmail) && validPassword(inputtedPassword)){
-                    loginUser();
-                }
-            }
-        });
+        if(sharedPreferences.contains("logged_email")) {
+            redirectHomeActivity();
+        }
+        */
 
         //forgot password?
         forgotPass.setOnClickListener(new View.OnClickListener() {
@@ -105,11 +119,30 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(), ForgotPassword.class);
                 startActivity(intent);
-                finish(); //so they wont have to use back button instead they will use the back button provided in forgot pass activity
+                //finish(); //so they wont have to use back button instead they will use the back button provided in forgot pass activity
             }
         });
 
-        createButton.setOnClickListener(new View.OnClickListener() {
+
+        //click login button
+        loginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                inputtedEmail = emailTxt.getText().toString().trim();
+                inputtedPassword = passwordTxt.getText().toString().trim();
+                /*
+                editor.putString("logged_email", inputtedEmail);
+                editor.putString("logged_password", inputtedPassword);
+                editor.commit();
+                 */
+                if(validEmail(inputtedEmail) && validPassword(inputtedPassword)){
+                    loginUser();
+                }
+            }
+        });
+
+        //don't have an account? Signup
+        signupTxt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(), Signup.class);
@@ -117,6 +150,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    protected boolean isUserAuthenticated() {
+        // Check your stored data (SharedPreferences) for authentication status
+        return sharedPreferences.getBoolean("is_authenticated", false);
+    }
+
+    protected void saveAuthenticationState(boolean isAuthenticated) {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean("is_authenticated", isAuthenticated);
+        editor.apply();
     }
 
     protected void setStatusBarColor(int color) {
@@ -129,18 +173,17 @@ public class MainActivity extends AppCompatActivity {
 
     protected void findViewById(){
         //reference to ui elements (login and google sign-in button)
-        //signInButton = findViewById(R.id.googleSignInButton);
         loginButton = findViewById(R.id.buttonLogin);
-        createButton = findViewById(R.id.buttonCreate);
         emailTxt = findViewById(R.id.emailEditTxt);
         passwordTxt = findViewById(R.id.passwordEditTxt);
         forgotPass = findViewById(R.id.forgotPasswordTxt);
+        signupTxt = findViewById(R.id.textViewSignup);
     }
 
     protected void redirectHomeActivity(){
+        finish(); //Finish the current activity (main activity) so that the user can't go back to the sign-in screen with the back button
         Intent intent = new Intent(getApplicationContext(), Home.class);
         startActivity(intent);
-        finish(); //Finish the current activity (main activity) so that the user can't go back to the sign-in screen with the back button
     }
 
     protected void loginUser() {
@@ -159,16 +202,21 @@ public class MainActivity extends AppCompatActivity {
 
                             if (inputtedPassword.equals(storedPassword)) {
                                 updateLastLogin(inputtedEmail); //last login on date today
+                                //saveAuthenticationState(true); //set to true now
                                 redirectHomeActivity();
                                 finish();
                                 Toast.makeText(MainActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
                             } else {
                                 // Password doesn't match
-                                Toast.makeText(MainActivity.this, "Incorrect email or password", Toast.LENGTH_SHORT).show();
+                                //Toast.makeText(MainActivity.this, "Incorrect email or password", Toast.LENGTH_SHORT).show();
+                                text.setText("Incorrect email or password!");
+                                showError();
                             }
                         } else {
                             // User with the provided email not found
-                            Toast.makeText(MainActivity.this, "Incorrect email or password", Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(MainActivity.this, "Incorrect email or password", Toast.LENGTH_SHORT).show();
+                            text.setText("Incorrect email or password!");
+                            showError();
                         }
                     }
                 })
@@ -178,6 +226,14 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this, "Error logging in " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private void showError() {
+        Toast toast = new Toast(getApplicationContext());
+        toast.setGravity(Gravity.TOP, 5, 0); // Adjust the Y offset as needed
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(errorLayout);
+        toast.show();
     }
 
     protected void updateLastLogin(String email){
@@ -217,33 +273,6 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this, "Error checking user existence: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
-    }
-
-    protected void signIn(){
-        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
-        startActivityForResult(signInIntent, RC_SIGN_IN);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        // Result returned from launching the Intent from GoogleSignInClient.getSignInIntent(...);
-        if (requestCode == RC_SIGN_IN) {
-            // The Task returned from this call is always completed, no need to attach
-            // a listener.
-            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-            try{
-                GoogleSignInAccount account = task.getResult(ApiException.class);
-                firebaseAuth(account.getIdToken());
-            }
-            catch (ApiException e){
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    protected void firebaseAuth(String idToken) {
-
     }
 
     protected void textWatchers(){
@@ -338,14 +367,9 @@ public class MainActivity extends AppCompatActivity {
         passwordInputLayout.setErrorTextColor(ColorStateList.valueOf(redColor));
     }
 
-
     @Override
     protected void onStart() {
         super.onStart();
-        // Check for existing Google Sign In account, if the user is already signed in
-        // the GoogleSignInAccount will be non-null.
-        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
-
     }
 
     private class EmailTextWatcher implements TextWatcher {

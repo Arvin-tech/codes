@@ -1,0 +1,11 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Set a specific width for the shape (in this case, 500dp) -->
+    <size
+        android:width="500dp"
+        android:height="500dp" />
+
+    <solid android:color="#FF0000" /> <!-- Red color for the background -->
+    <corners android:radius="2dp" /> <!-- Optional: Add rounded corners -->
+</shape>

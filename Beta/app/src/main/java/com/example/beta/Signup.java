@@ -5,6 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
@@ -15,7 +17,10 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,49 +49,58 @@ public class Signup extends AppCompatActivity {
                     ".{8,}" + //at least 8 characters
                     "$");
 
-    protected static final Pattern PHONE_PATTERN = Pattern.compile("09[0-9]{9}"); //philippine format? 09 prefix yarn
-
     protected final String TAG = "FIRESTORELOG"; //logs related to firebase
     protected FirebaseFirestore db; //cloud fire store
-    protected EditText fullNameTxt, emailTxt, phoneTxt, passwordTxt, confirmPassTxt; //variables for edit texts
+    protected EditText emailTxt, passwordTxt, confirmPassTxt; //variables for edit texts
     protected AppCompatButton signUp;
-    protected TextView login; //already have an account? click me
-    protected TextInputLayout nameInputLayout, emailInputLayout, phoneInputLayout, passwordInputLayout, confirmInputLayout; //to output the error and set input limits
-    protected String inputtedName, inputtedPhone, inputtedEmail, inputtedPassword, inputtedConfirmPass; //variable for inputted values
+    protected TextView login, terms; //already have an account? click me and terms and conditions
+    protected TextInputLayout emailInputLayout, passwordInputLayout, confirmInputLayout; //to output the error and set input limits
+    protected String  inputtedEmail, inputtedPassword, inputtedConfirmPassword; //variable for inputted values
     protected Map<String, Object> user; //used to save user details
     protected Calendar calendar = Calendar.getInstance();
     protected SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); //year month date -- hour minute seconds
     protected String currentDate = simpleDateFormat.format(calendar.getTime()); //or currentDate = DateFormat.getDateInstance(DateFormat.FULL).format(calendar.getTime());
     protected int accountNumber = generateAccountNumber();
+    protected int redColor = Color.parseColor("#FF0000"); // Set the error text color to red
+    protected ImageView checkmarkLength, lowercaseCheck, uppercaseCheck, digitCheck, specialCheck;
+    protected CheckBox privacyPolicy;
+    protected boolean valid = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
 
-        setStatusBarColor(getResources().getColor(R.color.dark_orange));
+        setStatusBarColor(getResources().getColor(R.color.light_gray)); //status bar color
 
         db = FirebaseFirestore.getInstance(); //initialize firebase fire store
         findViewById(); //reference to ui elements
         textWatchers(); //input text watchers
         inputListeners(); //input listeners
 
-        //click signup button
+        //disable next button until inputs are valid and checkbox is marked checked
+        signUp.setEnabled(false);
+        signUp.setBackgroundResource(R.color.dark_gray); //if disabled
+
+        //validate inputs to enable next button
+        if(emailInputListener(inputtedEmail) && passwordInputListener(inputtedPassword) && confirmPassInputListener(inputtedPassword, inputtedConfirmPassword) && privacyPolicy.isChecked()){
+            signUp.setEnabled(true);
+            signUp.setBackgroundResource(R.color.yellow); //yellow if enabled
+        }
+
+        //click next button
         signUp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String inputtedName = fullNameTxt.getText().toString().trim();
-                String inputtedPhone = phoneTxt.getText().toString().trim();
-                String inputtedEmail = emailTxt.getText().toString().trim();
-                String inputtedPassword = passwordTxt.getText().toString().trim();
-                String inputtedConfirmPassword = confirmPassTxt.getText().toString().trim();
+               inputtedEmail = emailTxt.getText().toString().trim();
+               inputtedPassword = passwordTxt.getText().toString().trim();
+               inputtedConfirmPassword = confirmPassTxt.getText().toString().trim();
 
-                if(validateName(inputtedName) && validatePhone(inputtedPhone) && validateEmail(inputtedEmail)
-                                              && validatePassword(inputtedPassword)
-                                              && validateConfirmPass(inputtedPassword, inputtedConfirmPassword)){
-                    createUser(inputtedName, inputtedPhone, inputtedEmail, inputtedConfirmPassword);
+                if(validateEmail(inputtedEmail) && validatePassword(inputtedPassword)
+                                                && validateConfirmPass(inputtedPassword, inputtedConfirmPassword)){
+                   redirectSecondSignup(inputtedEmail, inputtedPassword, inputtedConfirmPassword);
                 }else{
-                    Toast.makeText(getApplicationContext(), "Please enter again", Toast.LENGTH_SHORT).show();
+
                 }
             }
         });
@@ -99,6 +113,29 @@ public class Signup extends AppCompatActivity {
             } //proceeds to login activity
         });
 
+        /*
+        terms.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), PrivacyPolicy.class);
+                startActivity(intent); //proceed to privacy policy web view
+            }
+        });
+        */
+
+        privacyPolicy.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+            }
+        });
+
+    }
+
+    private void inputListeners() {
+        emailInputListener(inputtedEmail);
+        passwordInputListener(inputtedPassword);
+        confirmPassInputListener(inputtedPassword, inputtedConfirmPassword);
     }
 
     protected int generateAccountNumber(){
@@ -117,7 +154,7 @@ public class Signup extends AppCompatActivity {
     }
 
     //create users collection
-    protected void createUser(final String name, final String phone, final String email, final String password) {
+    protected void createUser(final String email, final String password) {
         // Check if the email already exists in the collection
         db.collection("Users")
                 .document(email) // Use the email as the document ID
@@ -129,15 +166,13 @@ public class Signup extends AppCompatActivity {
                             Toast.makeText(Signup.this, "Email already taken", Toast.LENGTH_SHORT).show(); //duplicate input
                             emailTxt.setText(null); //clear duplicate input
                         } else {
-                            // Email doesn't exist, create the user document
+                            // Email not duplicated, create the user document
                             user = new HashMap<>();
                             user.put("accountNumber", accountNumber);
-                            user.put("fullName", name);
-                            user.put("phone", phone);
                             user.put("email", email);
                             user.put("password", password);
                             user.put("dateRegistered", currentDate);
-                            user.put("lastLogin", "not logged in");
+                            user.put("lastLogin", "not logged in"); //not working as intended
 
                             // Set the document ID as the inputted email
                             db.collection("Users")
@@ -148,7 +183,7 @@ public class Signup extends AppCompatActivity {
                                         public void onSuccess(Void aVoid) {
                                             Log.d(TAG, "DocumentSnapshot added with ID: " + email);
                                             redirectLoginActivity();
-                                            Toast.makeText(Signup.this, "Successfully Added " + name, Toast.LENGTH_SHORT).show();
+                                            //Toast.makeText(Signup.this, "Successfully Added " + name, Toast.LENGTH_SHORT).show();
                                         }
                                     })
                                     .addOnFailureListener(new OnFailureListener() {
@@ -166,31 +201,52 @@ public class Signup extends AppCompatActivity {
     //reference to ui elements
     protected void findViewById(){
         //inputs
-        fullNameTxt = (EditText) findViewById(R.id.fullNameEditTxt);
         emailTxt = (EditText) findViewById(R.id.emailEditTxt);
-        phoneTxt = (EditText) findViewById(R.id.phoneEditTxt);
         passwordTxt = (EditText) findViewById(R.id.passwordEditTxt);
         confirmPassTxt = (EditText) findViewById(R.id.passwordConfirmEditTxt);
         signUp = (AppCompatButton) findViewById(R.id.buttonSignup); //actually it's not login, error in naming
         login = (TextView) findViewById(R.id.textViewLogin);
+        //terms = (TextView) findViewById(R.id.termsTextview);
+        privacyPolicy = (CheckBox) findViewById(R.id.agreeCheckbox);
+
+        //checkmarks
+        checkmarkLength = findViewById(R.id.charactersCheck);
+        lowercaseCheck = findViewById(R.id.lowercaseCheck);
+        uppercaseCheck = findViewById(R.id.uppercaseCheck);
+        digitCheck = findViewById(R.id.digitCheck);
+        specialCheck = findViewById(R.id.specialCheck);
+        //checkmarkConfirmation = findViewById(R.id.checkmarkConfirmation);
+        //xMarkConfirmation = findViewById(R.id.xMarkConfirmation);
+
     }
 
     //text watchers
     protected void textWatchers(){
-        fullNameTxt.addTextChangedListener(new NameTextWatcher());
-        phoneTxt.addTextChangedListener(new PhoneTextWatcher());
         emailTxt.addTextChangedListener(new EmailTextWatcher());
         passwordTxt.addTextChangedListener(new PasswordTextWatcher());
         confirmPassTxt.addTextChangedListener(new ConfirmPasswordTextWatcher());
     }
 
+    public void checkInputValidity() {
+        boolean isEmailValid = validateEmail(inputtedEmail);
+        boolean isPassValid = validatePassword(inputtedPassword);
+        boolean isConfirmPassValid = validateConfirmPass(inputtedPassword, inputtedConfirmPassword);
+
+        signUp.setEnabled(isEmailValid && isPassValid && isConfirmPassValid && privacyPolicy.isChecked());
+
+        if (isEmailValid && isPassValid && isConfirmPassValid) {
+            signUp.setBackgroundResource(R.color.yellow);
+        } else {
+            signUp.setBackgroundResource(R.color.dark_gray);
+        }
+    }
+
+    /**
     protected void inputListeners(){
-        nameInputListener();
-        phoneInputListener();
         emailInputListener();
         passwordInputListener();
         confirmPassInputListener();
-    }
+    }**/
 
     //redirect to login
     protected void redirectLoginActivity(){
@@ -199,51 +255,21 @@ public class Signup extends AppCompatActivity {
         finish(); //close signup activity
     }
 
-    //boolean validations
-    protected Boolean validateName(String name){
-        nameInputLayout = findViewById(R.id.fullNameLayout);
-        fullNameTxt = nameInputLayout.getEditText();
-
-        if (name.isEmpty()){
-            fullNameTxt.requestFocus(); //cursor here
-            nameInputLayout.setError("Name Required!"); //red
-            return false;
-        }
-        else{
-            nameInputLayout.setError(null); //no more red
-            return true;
-        }
+    protected void redirectSecondSignup(String email, String password, String confirm){
+        Intent intent = new Intent(getApplicationContext(), SignupTwo.class); //proceed to step 2
+        intent.putExtra("email", email); //send to step 2
+        intent.putExtra("password", password); //send to step 2
+        intent.putExtra("confirm", confirm); //send to step 2
+        startActivity(intent);
     }
 
-    protected Boolean validatePhone(String phone){
-        phoneInputLayout = findViewById(R.id.phoneNumberLayout);
-        phoneTxt = phoneInputLayout.getEditText();
-        if(phone.isEmpty()){
-            phoneTxt.requestFocus(); //cursor here
-            phoneInputLayout.setError("Phone number required!"); //red
-            return false;
-        }
-        else if (phone.length() != 11){
-            phoneTxt.requestFocus(); //cursor here
-            phoneInputLayout.setError("Phone number must be 11 digits"); //red gihapon
-            return false;
-        }
-        else if (!PHONE_PATTERN.matcher(phone).matches()){
-            phoneInputLayout.setError("Invalid Phone number"); //red gihapon
-            return false;
-        }
-        else{
-            phoneInputLayout.setError(null); //no more red
-            return true;
-        }
-    }
-
+    //validators
     protected Boolean validateEmail(String email){
         emailInputLayout = findViewById(R.id.emailLayout);
         emailTxt = emailInputLayout.getEditText();
 
         if(email.isEmpty()){
-            emailTxt.requestFocus(); //cursor here
+            //emailTxt.requestFocus(); //cursor here
             emailInputLayout.setError("Email Required!"); //red
             return false;
         }
@@ -252,13 +278,8 @@ public class Signup extends AppCompatActivity {
             emailInputLayout.setError("Invalid email!"); //red gihapon
             return false;
         }
-        else if(email.length() > 50){
-            emailTxt.requestFocus();
-            emailInputLayout.setError("Email address cannot exceed 50 characters!"); //red gihapon
-            return false;
-        }
         else{
-            emailInputLayout.setError(null); //no more red
+            emailInputLayout.setError(null); //no more  red
             return true;
         }
     }
@@ -268,17 +289,17 @@ public class Signup extends AppCompatActivity {
         passwordTxt = passwordInputLayout.getEditText();
 
         if(password.isEmpty()){
-            passwordTxt.requestFocus(); //cursor here
+            //passwordTxt.requestFocus(); //cursor here
             passwordInputLayout.setError("Password Required!"); //red
             return false;
         }
         else if (!PASSWORD_PATTERN.matcher(password).matches()){
-            passwordInputLayout.setError("Password too weak"); //red gihapon
+            passwordInputLayout.setError("Password too weak! Please choose a strong password"); //red
             return false;
         }
         else if (password.length() < 8 || password.length() > 15) {
             passwordTxt.requestFocus();
-            passwordInputLayout.setError("Password must be between 8 and 15 characters!"); //red gihapon
+            passwordInputLayout.setError("Password must be between 8-15 characters long!"); //red
             return false;
         }
         else {
@@ -292,7 +313,7 @@ public class Signup extends AppCompatActivity {
         confirmPassTxt = confirmInputLayout.getEditText();
 
         if(confirm.isEmpty()){
-            confirmPassTxt.requestFocus(); //cursor here
+            //confirmPassTxt.requestFocus(); //cursor here
             confirmInputLayout.setError("Confirm your password"); //red
             return false;
         } else if(!password.equals(confirm)){
@@ -306,60 +327,13 @@ public class Signup extends AppCompatActivity {
         }
     }
 
-    protected void nameInputListener(){
-        nameInputLayout = findViewById(R.id.fullNameLayout);
-        fullNameTxt = nameInputLayout.getEditText();
-        assert fullNameTxt != null;
-        fullNameTxt.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+    //input listeners
+    protected Boolean emailInputListener(String email){
 
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                inputtedName = fullNameTxt.getText().toString().trim();
-                if (!inputtedName.isEmpty()){
-                    nameInputLayout.setError(null); //triggers when name edit text input not empty
-                }
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-
-            }
-        });
-    }
-
-    protected void phoneInputListener(){
-        phoneInputLayout = findViewById(R.id.phoneNumberLayout);
-        phoneTxt = phoneInputLayout.getEditText();
-        assert phoneTxt != null;
-        phoneTxt.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                inputtedPhone = phoneTxt.getText().toString().trim();
-                if (!inputtedPhone.isEmpty()){
-                    phoneInputLayout.setError(null); //triggers when name edit text input not empty
-                }
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-
-            }
-        });
-    }
-
-    protected void emailInputListener(){
         emailInputLayout = findViewById(R.id.emailLayout);
         emailTxt = emailInputLayout.getEditText();
         assert emailTxt != null;
+
         emailTxt.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -369,22 +343,39 @@ public class Signup extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 inputtedEmail = emailTxt.getText().toString().trim();
+
                 if(!inputtedEmail.isEmpty()){
-                    emailInputLayout.setError(null); //triggers when name edit text input not empty
+                    emailInputLayout.setError(null); //display no error: triggers when email edit text input not empty
+                    valid = false;
                 }
+
+                if(!Patterns.EMAIL_ADDRESS.matcher(inputtedEmail).matches()){
+                    emailInputLayout.setError("Invalid email!"); //display this until user inputs a valid email
+                    valid = false;
+                }
+
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-
+                inputtedEmail = emailTxt.getText().toString().trim();
+                if(inputtedEmail.isEmpty()){
+                    emailInputLayout.setError(null);  //when user leaves the edit text empty
+                    valid = false;
+                }
             }
+
         });
+        emailInputLayout.setErrorTextColor(ColorStateList.valueOf(redColor));
+        return valid;
     }
 
-    protected void passwordInputListener() {
+    protected Boolean passwordInputListener(String password) {
+
         passwordInputLayout = findViewById(R.id.passwordLayout);
         passwordTxt = passwordInputLayout.getEditText();
         assert passwordTxt != null;
+
         passwordTxt.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -396,21 +387,30 @@ public class Signup extends AppCompatActivity {
                 inputtedPassword = passwordTxt.getText().toString().trim();
                 if(!inputtedPassword.isEmpty()){
                     passwordInputLayout.setError(null); //triggers when name edit text input not empty
+                    valid = false;
                 }
+
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-
+                   inputtedPassword = passwordTxt.getText().toString().trim();
+                   if(inputtedPassword.isEmpty()){
+                       passwordInputLayout.setError(null);
+                       valid = false;
+                   }
             }
         });
-
+        passwordInputLayout.setErrorTextColor(ColorStateList.valueOf(redColor));
+        return valid;
     }
 
-    protected void confirmPassInputListener(){
+    protected Boolean confirmPassInputListener(String password, String confirm){
+
         confirmInputLayout = findViewById(R.id.confirmPasswordLayout);
         confirmPassTxt = confirmInputLayout.getEditText();
         assert confirmPassTxt != null;
+
         confirmPassTxt.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -419,17 +419,26 @@ public class Signup extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                inputtedConfirmPass = confirmPassTxt.getText().toString().trim();
-                if (!inputtedConfirmPass.isEmpty()){
+                inputtedConfirmPassword = confirmPassTxt.getText().toString().trim();
+                if (!inputtedConfirmPassword.isEmpty()){
                     confirmInputLayout.setError(null); //triggers when name edit text input not empty
+                    valid = false;
                 }
+
             }
 
             @Override
             public void afterTextChanged(Editable s) {
+                inputtedConfirmPassword = confirmPassTxt.getText().toString().trim();
+                if(inputtedConfirmPassword.isEmpty()){
+                    confirmInputLayout.setError(null);
+                    valid = false;
+                }
 
             }
         });
+        confirmInputLayout.setErrorTextColor(ColorStateList.valueOf(redColor));
+        return valid;
     }
 
     //inner classes: text watchers used especially to limit input
@@ -442,6 +451,7 @@ public class Signup extends AppCompatActivity {
 
         @Override
         public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
         }
 
         @Override
@@ -481,6 +491,7 @@ public class Signup extends AppCompatActivity {
 
         @Override
         public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
         }
 
         @Override
@@ -489,11 +500,13 @@ public class Signup extends AppCompatActivity {
             if (email.length() > MAX_EMAIL_LENGTH) {
                 editable.replace(0, editable.length(), email.substring(0, MAX_EMAIL_LENGTH));
             }
+
         }
     }
 
     private class PasswordTextWatcher implements TextWatcher {
         private static final int MAX_PASSWORD_LENGTH = 15;
+
 
         @Override
         public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -509,6 +522,8 @@ public class Signup extends AppCompatActivity {
             if (password.length() > MAX_PASSWORD_LENGTH) {
                 editable.replace(0, editable.length(), password.substring(0, MAX_PASSWORD_LENGTH));
             }
+            // Check password criteria and update checkmarks visibility
+            updatePasswordStrength(password);
         }
     }
 
@@ -530,6 +545,15 @@ public class Signup extends AppCompatActivity {
                 editable.replace(0, editable.length(), confirmPass.substring(0, MAX_CONFIRM_PASSWORD_LENGTH));
             }
         }
+    }
+
+    private void updatePasswordStrength(String password) {
+        // update checkmarks visibility here, set ImageView visibility based on whether the criteria are met:
+        checkmarkLength.setVisibility(password.length() >= 8 && password.length() <= 15 ? View.VISIBLE : View.GONE);
+        lowercaseCheck.setVisibility(Pattern.compile("[a-z]").matcher(password).find() ? View.VISIBLE : View.GONE);
+        uppercaseCheck.setVisibility(Pattern.compile("[A-Z]").matcher(password).find() ? View.VISIBLE : View.GONE);
+        digitCheck.setVisibility(Pattern.compile("[0-9]").matcher(password).find() ? View.VISIBLE : View.GONE);
+        specialCheck.setVisibility(Pattern.compile("[!@#$%^&*(),.?\":{}|<>]").matcher(password).find() ? View.VISIBLE : View.GONE);
     }
 
 }

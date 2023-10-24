@@ -19,6 +19,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,8 +31,11 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.SignInMethodQueryResult;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
+
+import org.w3c.dom.Document;
 
 import java.util.Random;
 
@@ -60,28 +64,16 @@ public class ForgotPassword extends AppCompatActivity {
     protected int code = generateCode(); //get the generated code
     protected int redColor = Color.parseColor("#FF0000"); // Set the error text color to red
 
+    protected ImageView back;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forgot_password);
 
-        setStatusBarColor(getResources().getColor(R.color.dark_orange)); //set status bar color
+        setStatusBarColor(getResources().getColor(R.color.light_gray)); //set status bar color
         db = FirebaseFirestore.getInstance(); //initialize firebase fire store
-
-        //reference to ui elements (parent layout)
-        prompt = findViewById(R.id.promptUserTxt); //reset message
-        title = findViewById(R.id.titleTxt);
-        backButton = findViewById(R.id.buttonGoBack); //back to login button
-
-        //InputsFrameLayout
-        emailInputTxt = findViewById(R.id.emailEditTxt); //email address input
-        codeInputTxt = findViewById(R.id.codeEditTxt);
-
-        //ButtonsFrameLayout
-        resetButton = findViewById(R.id.buttonReset); //send code to email button
-        enterCode = findViewById(R.id.buttonEnterCode); //enter reset code button
-        progressBar = findViewById(R.id.progressBarReset); //progress bar
+        findViewById();
 
         emailInputTxt.addTextChangedListener(new EmailTextWatcher());
         codeInputTxt.addTextChangedListener(new CodeTextWatcher());
@@ -96,16 +88,7 @@ public class ForgotPassword extends AppCompatActivity {
                if(validEmail(inputtedEmail)){
                    checkIfUserExist(inputtedEmail);
                    sendConfirmationCode(inputtedEmail);
-                   Toast.makeText(ForgotPassword.this, "Please check your email", Toast.LENGTH_SHORT).show();
                }
-            }
-        });
-
-        //back to login
-        backButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                redirectLoginActivity();
             }
         });
 
@@ -132,6 +115,29 @@ public class ForgotPassword extends AppCompatActivity {
             }
         });
 
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                redirectLoginActivity();
+            }
+        });
+
+    }
+
+    private void findViewById() {
+        //reference to ui elements (parent layout)
+        back = findViewById(R.id.backImage);
+        prompt = findViewById(R.id.promptUserTxt); //reset message
+        title = findViewById(R.id.titleTxt);
+
+        //InputsFrameLayout
+        emailInputTxt = findViewById(R.id.emailEditTxt); //email address input
+        codeInputTxt = findViewById(R.id.codeEditTxt);
+
+        //ButtonsFrameLayout
+        resetButton = findViewById(R.id.buttonReset); //send code to email button
+        enterCode = findViewById(R.id.buttonEnterCode); //enter reset code button
+        progressBar = findViewById(R.id.progressBarReset); //progress bar
     }
 
     protected void setStatusBarColor(int color) {
@@ -162,20 +168,21 @@ public class ForgotPassword extends AppCompatActivity {
         }
     }
 
+    // to get document id or document = documentsnapshot, if field in a document QuerySnapshot queryDocumentSnapshots
     protected void checkIfUserExist(String email){
         db.collection("Users")
-                .whereEqualTo("email", email)
-                .limit(1)
+                .document(email)
                 .get()
-                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
-                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
-                        if (!queryDocumentSnapshots.isEmpty()) {
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        if (documentSnapshot.exists()) {
+                            Toast.makeText(ForgotPassword.this, "Please check your email", Toast.LENGTH_SHORT).show();
                             resetPassword();
-                            //Toast.makeText(ForgotPassword.this, "User with this email exists.", Toast.LENGTH_SHORT).show();
                         } else {
                             // User with the provided email does not exist in Firestore
-                            Toast.makeText(ForgotPassword.this, "User with this email does not exist.", Toast.LENGTH_SHORT).show();
+                            emailInputLayout.setError("We can't find a user with the email you provided!");
+                            //Toast.makeText(ForgotPassword.this, "User with this email does not exist.", Toast.LENGTH_SHORT).show();
                         }
                     }
                 })
@@ -204,10 +211,10 @@ public class ForgotPassword extends AppCompatActivity {
     protected void sendConfirmationCode(String recipientEmail) {
 
         //email contents
-        String subject = "BETA App Password Reset";
-        String body = "Hi there,\n" +
+        String subject = "CrediSync Password Reset";
+        String body = "Hello there,\n" +
                 "\n" +
-                "Looks like a request was made to reset the password for your BETA App Account. Your password reset code is: " + code + ". " +
+                "Looks like a request was made to reset the password for your CrediSync Account. Your password reset code is: " + code + ". " +
                 "If you did not ask to reset your password, you can ignore this email.\n" +
                 "\n" +
                 "Thanks,\n" +
@@ -256,12 +263,14 @@ public class ForgotPassword extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
     protected int generateCode() {
         final int minCode = 100000; // 6-digit numbers start from 100000
         final int maxCode = 999999; // 6-digit numbers end at 999999
         Random random = new Random();
         return random.nextInt(maxCode - minCode + 1) + minCode;
     }
+
     protected void redirectResetPasswordActivity(String email){
         Intent intent = new Intent(getApplicationContext(), ResetPassword.class); //proceed to reset password ui
         intent.putExtra("email", email); //send this email input to the reset password activity
@@ -270,6 +279,7 @@ public class ForgotPassword extends AppCompatActivity {
         //Intent intentHome = new Intent(getApplicationContext(), Home.class);
         //intentHome.putExtra("email", email); //send this email input to home, to display the logged in user
     }
+
     protected void redirectLoginActivity(){
         Intent intent = new Intent(getApplicationContext(), MainActivity.class); //back to login
         startActivity(intent);
@@ -292,7 +302,6 @@ public class ForgotPassword extends AppCompatActivity {
                     emailInputLayout.setError(null); //triggers when email edit text input is not empty
                 }
             }
-
             @Override
             public void afterTextChanged(Editable s) {
 
